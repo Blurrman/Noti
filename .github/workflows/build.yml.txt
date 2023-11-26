@@ -1,0 +1,36 @@
+name: Android CI
+run-name: Build on ${{ github.event_name }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+env:
+  BUILD_TYPE: release
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.repository_owner == 'errr-maxx-build' && !startsWith(github.event.head_commit.message, '[skip ci]')) }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Build & sign APK
+        uses: errr-maxx-build/android-build-signed-apk@master
+        with:
+          usePatchedSDK: true
+          buildType: ${{ env.BUILD_TYPE }}
+          keyStore:         ${{ secrets.SIGNING_KEYSTORE }}
+          keyStorePassword: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          keyAlias:         ${{ secrets.SIGNING_ALIAS }}
+          keyPassword:      ${{ secrets.SIGNING_ALIAS_PASSWORD }}
+          outputFile: ./app-${{ env.BUILD_TYPE }}-signed.apk
+
+      - name: Attach APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-${{ env.BUILD_TYPE }}
+          path: ./app-${{ env.BUILD_TYPE }}-signed.apk
